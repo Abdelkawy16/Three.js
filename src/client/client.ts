@@ -3,31 +3,40 @@ import { MOUSE, Vector2 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { Line } from '../client/Line'
 import { Polyline } from '../client/Polyline'
+import { Rectangle } from './Rectangle';
 
 
 enum mode {
     general,
     drawLine,
-    drawPolyline
+    drawPolyline,
+    drawRectangle
 }
 let currentMode = mode.general
 
 /**
- * Line to draw
+ * Objects to draw
  */
-let LineToDraw: Line | null
-let PolylineToDraw: Polyline | null
+let LineToDraw: Line | null = null
+let line: THREE.Line
+
+let PolylineToDraw: Polyline | null = null
+let polyline: THREE.Line
+
+let RectangleToDraw: Rectangle | null = null
+let rectangle: THREE.Line
 
 /**
  * matrials
  */
-const lineToDrawMat = new THREE.MeshBasicMaterial({
-    color: 0xff0000
+const objectToDrawMat = new THREE.LineBasicMaterial({
+    color: 0xff0000,
+    // wireframe:true
 })
-const drawnLineMat = new THREE.MeshBasicMaterial({
-    color: 0x00ffff
+const drawnObjectMat = new THREE.LineBasicMaterial({
+    color: 0x000fff,
+    // wireframe:true
 })
-let line1: THREE.Line
 
 
 /**
@@ -37,6 +46,7 @@ const xPosition = document.querySelector('.xPosition') as HTMLParagraphElement
 const yPosition = document.querySelector('.yPosition') as HTMLParagraphElement
 const drawLineBtn = document.getElementById('drawLine') as HTMLInputElement
 const drawPolylineBtn = document.getElementById('drawPolyline') as HTMLInputElement
+const drawRectangleBtn = document.getElementById('drawRectangle') as HTMLInputElement
 
 /**
  * scene
@@ -63,6 +73,7 @@ const controls = new OrbitControls(camera, renderer.domElement)
 controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN
 controls.mouseButtons.RIGHT = THREE.MOUSE.DOLLY
 controls.enableRotate = false
+controls.screenSpacePanning = true;
 
 /**
  * events
@@ -73,46 +84,83 @@ drawLineBtn.addEventListener('click', (e) => {
 drawPolylineBtn.addEventListener('click', (e) => {
     currentMode = mode.drawPolyline
 })
+drawRectangleBtn.addEventListener('click', (e) => {
+    currentMode = mode.drawRectangle
+})
 
 /**
- *  Draw Lines
+ *  Draw objects
  */
 window.onmousemove = (e) => {
     getPoint(e)
-    if (currentMode == mode.drawLine) {
-        if (LineToDraw != null) {
-            LineToDraw.changeEndPoint(new Vector2(point.x, point.y))
-            const geometry = new THREE.BufferGeometry().setFromPoints(LineToDraw.getPoints())
-            line1.geometry = geometry
-        }
-        renderer.domElement.style.cursor = 'crosshair'
-    }
-    else if (e.which == 2) {
-        renderer.domElement.style.cursor = 'grabbing'
-    }
-    else {
-        renderer.domElement.style.cursor = 'grab'
+    switch (currentMode) {
+        case mode.drawLine:
+            renderer.domElement.style.cursor = 'crosshair'
+            if (LineToDraw != null) {
+                LineToDraw.changeEndPoint(new Vector2(point.x, point.y))
+                const geometry = new THREE.BufferGeometry().setFromPoints(LineToDraw.getPoints())
+                line.geometry = geometry
+            }
+            break
+
+        case mode.drawRectangle:
+            renderer.domElement.style.cursor = 'crosshair'
+            if(RectangleToDraw != null){
+                RectangleToDraw.updateSlices(new Vector2(point.x, point.y))
+                const geometry = new THREE.BufferGeometry().setFromPoints(RectangleToDraw.Points)
+                rectangle.geometry = geometry
+            }
+            break
+
+        default:
+            if (e.which == 2) {
+                renderer.domElement.style.cursor = 'grabbing'
+            }
+            else {
+                renderer.domElement.style.cursor = 'grab'
+            }
+            break
     }
 }
 
 renderer.domElement.onmousedown = (e) => {
     if (e.button.valueOf() == MOUSE.RIGHT) {
         currentMode = mode.general
-        // linePoints.splice(0)
     }
-    if (e.button.valueOf() == MOUSE.LEFT && currentMode == mode.drawLine) {
-        if (LineToDraw == null) {
-            console.log("draw line")
-            LineToDraw = new Line(new Vector2(point.x, point.y), new Vector2(point.x, point.y))
-            const geometry = new THREE.BufferGeometry().setFromPoints([LineToDraw.StartPt, LineToDraw.EndPt])
-            line1 = new THREE.Line()
-            line1.material = lineToDrawMat
-            line1.geometry = geometry
-            scene.add(line1)
-        } else {
-            line1.material = drawnLineMat
-            LineToDraw = null
-        }
+    switch (currentMode) {
+        case mode.drawLine:
+            if (e.button.valueOf() == MOUSE.LEFT) {
+                if (LineToDraw == null) {
+                    console.log("draw line")
+                    LineToDraw = new Line(new Vector2(point.x, point.y), new Vector2(point.x, point.y))
+                    const geometry = new THREE.BufferGeometry().setFromPoints(LineToDraw.getPoints())
+                    line = new THREE.Line(geometry, objectToDrawMat)
+                    scene.add(line)
+                } else {
+                    console.log('Line is drawn')
+                    line.material = drawnObjectMat
+                    LineToDraw = null
+                }
+            }
+            break
+        case mode.drawRectangle:
+            if (e.button.valueOf() == MOUSE.LEFT) {
+                if (RectangleToDraw == null) {
+                    console.log("draw rectangle")
+                    RectangleToDraw = new Rectangle(new Vector2(point.x, point.y))
+                    const geometry = new THREE.BufferGeometry()
+                    rectangle = new THREE.Line(geometry, objectToDrawMat)
+                    scene.add(rectangle)
+                } else {
+                    console.log('Rectangle is drawn')
+                    rectangle.material = drawnObjectMat
+                    RectangleToDraw = null
+                }
+            }
+            break
+
+        default:
+            break
     }
 }
 
@@ -128,11 +176,9 @@ var planeNormal = new THREE.Vector3()
 var point = new THREE.Vector3();
 function getPoint(event: MouseEvent) {
     var rect = renderer.domElement.getBoundingClientRect()
-    mouse.x = ( ( event.clientX - rect.left ) / ( rect. right - rect.left ) ) * 2 - 1;
-    mouse.y = - ( ( event.clientY - rect.top ) / ( rect.bottom - rect.top) ) * 2 + 1;
-    // mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    // mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    planeNormal.copy(camera.position).normalize();
+    mouse.x = ((event.clientX - rect.left) / (rect.right - rect.left)) * 2 - 1
+    mouse.y = - ((event.clientY - rect.top) / (rect.bottom - rect.top)) * 2 + 1
+    planeNormal.copy(camera.position).normalize()
     plane.setFromNormalAndCoplanarPoint(planeNormal, scene.position)
     raycaster.setFromCamera(mouse, camera)
     raycaster.ray.intersectPlane(plane, point)
@@ -143,11 +189,11 @@ function getPoint(event: MouseEvent) {
 /**
  * Grids
  */
-const size = window.innerWidth;
+const size = window.innerWidth * 2;
 const divisions = 50;
 
 const gridHelper = new THREE.GridHelper(size, divisions)
-gridHelper.position.z = -0.001
+gridHelper.position.z = -0.05
 gridHelper.rotation.x = Math.PI / 2
 scene.add(gridHelper)
 

@@ -13,6 +13,6 @@ export class Line {
         this.EndPt = endPt
     }
     getPoints(): Vector2[] {
-        return new Array(this.StartPt, this.EndPt)
+        return new Array(this.StartPt, this.EndPt, this.StartPt)
     }
 }
