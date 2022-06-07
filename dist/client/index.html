@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Three.js</title>
+        <style>
+            body {
+                overflow: hidden;
+                margin: 0px;
+            }
+            #debug1 {
+                font-family: monospace;
+                font-size: larger;
+                position: absolute;
+                left: 0px;
+                top: 50px;
+                border: 2px solid red;
+                width: 100px;
+                height: 150px;
+                color: black;
+                pointer-events: none;
+                background-color: white;
+            }
+        </style>
+    </head>
+
+    <body>
+        <input type="button" value="Draw Line" id="drawLine"></input>
+        <div id="debug1">
+            <p class="xPosition"></p>
+            <p class="yPosition"></p>
+        </div>
+        <script type="module" src="bundle.js"></script>
+    </body>
+</html>
