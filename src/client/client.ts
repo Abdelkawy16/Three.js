@@ -21,7 +21,7 @@ let LineToDraw: Line | null = null
 let line: THREE.Line
 
 let PolylineToDraw: Polyline | null = null
-let polyline: THREE.Mesh
+let polyline: THREE.Line
 
 let RectangleToDraw: Rectangle | null = null
 let rectangle: THREE.Line
@@ -47,6 +47,7 @@ const yPosition = document.querySelector('.yPosition') as HTMLParagraphElement
 const drawLineBtn = document.getElementById('drawLine') as HTMLInputElement
 const drawPolylineBtn = document.getElementById('drawPolyline') as HTMLInputElement
 const drawRectangleBtn = document.getElementById('drawRectangle') as HTMLInputElement
+const divisionsInput = document.getElementById('divisions') as HTMLInputElement
 
 /**
  * scene
@@ -105,11 +106,19 @@ window.onmousemove = (e) => {
 
         case mode.drawRectangle:
             renderer.domElement.style.cursor = 'crosshair'
-            if(RectangleToDraw != null){
+            if (RectangleToDraw != null) {
                 RectangleToDraw.updateSlices(new Vector2(point.x, point.y))
                 const geometry = new THREE.BufferGeometry().setFromPoints(RectangleToDraw.Points)
                 rectangle.geometry = geometry
-                // console.log(rectangle.geometry.attributes.position)
+            }
+            break
+
+        case mode.drawPolyline:
+            renderer.domElement.style.cursor = 'crosshair'
+            if (PolylineToDraw != null) {
+                PolylineToDraw.updateLastPoint(new Vector2(point.x, point.y))
+                const geometry = new THREE.BufferGeometry().setFromPoints(PolylineToDraw.getpoints())
+                polyline.geometry = geometry
             }
             break
 
@@ -123,9 +132,9 @@ window.onmousemove = (e) => {
             break
     }
 }
-
 renderer.domElement.onmousedown = (e) => {
     if (e.button.valueOf() == MOUSE.RIGHT) {
+        if (currentMode == mode.drawPolyline) PolylineToDraw = null
         currentMode = mode.general
     }
     switch (currentMode) {
@@ -159,6 +168,21 @@ renderer.domElement.onmousedown = (e) => {
                 }
             }
             break
+        case mode.drawPolyline:
+            if (e.button.valueOf() == MOUSE.LEFT) {
+                if (PolylineToDraw == null) {
+                    console.log("draw polyline")
+                    PolylineToDraw = new Polyline(new Vector2(point.x, point.y), new Vector2(point.x, point.y))
+                    const geometry = new THREE.BufferGeometry()
+                    polyline = new THREE.Line(geometry, objectToDrawMat)
+                    scene.add(polyline)
+                }
+                else {
+                    polyline.material = drawnObjectMat
+                    PolylineToDraw.addPoint(new Vector2(point.x, point.y))
+                }
+            }
+            break
 
         default:
             break
@@ -166,8 +190,18 @@ renderer.domElement.onmousedown = (e) => {
 }
 
 renderer.domElement.onmouseup = (e) => {
-    
+
 }
+
+divisionsInput.addEventListener('input', (e) => {
+    scene.remove(gridHelper)
+    const size = window.innerWidth * 2;
+    let divisions: number = +divisionsInput.value;
+    gridHelper = new THREE.GridHelper(size, divisions)
+    gridHelper.position.z = -0.05
+    gridHelper.rotation.x = Math.PI / 2
+    scene.add(gridHelper)
+})
 
 //# Get Mouse Location
 var raycaster = new THREE.Raycaster()
@@ -191,9 +225,9 @@ function getPoint(event: MouseEvent) {
  * Grids
  */
 const size = window.innerWidth * 2;
-const divisions = 50;
+let divisions: number = +divisionsInput.value;
 
-const gridHelper = new THREE.GridHelper(size, divisions)
+let gridHelper = new THREE.GridHelper(size, divisions)
 gridHelper.position.z = -0.05
 gridHelper.rotation.x = Math.PI / 2
 scene.add(gridHelper)
