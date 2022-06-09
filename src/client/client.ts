@@ -21,7 +21,7 @@ let LineToDraw: Line | null = null
 let line: THREE.Line
 
 let PolylineToDraw: Polyline | null = null
-let polyline: THREE.Line
+let polyline: THREE.Mesh
 
 let RectangleToDraw: Rectangle | null = null
 let rectangle: THREE.Line
@@ -109,6 +109,7 @@ window.onmousemove = (e) => {
                 RectangleToDraw.updateSlices(new Vector2(point.x, point.y))
                 const geometry = new THREE.BufferGeometry().setFromPoints(RectangleToDraw.Points)
                 rectangle.geometry = geometry
+                // console.log(rectangle.geometry.attributes.position)
             }
             break
 
