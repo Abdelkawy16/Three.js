@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { MOUSE, Vector2 } from 'three';
+import { MOUSE, Object3D, PointLight, Vector2 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { Line } from '../client/Line'
 import { Polyline } from '../client/Polyline'
@@ -25,6 +25,11 @@ let polyline: THREE.Line
 
 let RectangleToDraw: Rectangle | null = null
 let rectangle: THREE.Line
+
+/**
+ * Object to delete
+ */
+const objectsToDelete: THREE.Line[] = []
 
 /**
  * matrials
@@ -71,8 +76,7 @@ document.body.appendChild(renderer.domElement)
  * controls
  */
 const controls = new OrbitControls(camera, renderer.domElement)
-controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN
-controls.mouseButtons.RIGHT = THREE.MOUSE.DOLLY
+controls.mouseButtons.LEFT = THREE.MOUSE.PAN
 controls.enableRotate = false
 controls.screenSpacePanning = true;
 
@@ -123,7 +127,7 @@ window.onmousemove = (e) => {
             break
 
         default:
-            if (e.which == 2) {
+            if (e.which == 3 || e.which == 1) {
                 renderer.domElement.style.cursor = 'grabbing'
             }
             else {
@@ -138,6 +142,17 @@ renderer.domElement.onmousedown = (e) => {
         currentMode = mode.general
     }
     switch (currentMode) {
+        case mode.general:
+            if(e.button.valueOf() == MOUSE.MIDDLE){
+                if(currentIntesect){
+                    scene.remove(currentIntesect as THREE.Line)
+                    console.log("object deleted successfully")
+                }
+                else{
+                    console.log("No Shapes to Delete")
+                }
+            }
+            break
         case mode.drawLine:
             if (e.button.valueOf() == MOUSE.LEFT) {
                 if (LineToDraw == null) {
@@ -146,6 +161,7 @@ renderer.domElement.onmousedown = (e) => {
                     const geometry = new THREE.BufferGeometry().setFromPoints(LineToDraw.getPoints())
                     line = new THREE.Line(geometry, objectToDrawMat)
                     scene.add(line)
+                    objectsToDelete.push(line)
                 } else {
                     console.log('Line is drawn')
                     line.material = drawnObjectMat
@@ -161,6 +177,7 @@ renderer.domElement.onmousedown = (e) => {
                     const geometry = new THREE.BufferGeometry()
                     rectangle = new THREE.Line(geometry, objectToDrawMat)
                     scene.add(rectangle)
+                    objectsToDelete.push(rectangle)
                 } else {
                     console.log('Rectangle is drawn')
                     rectangle.material = drawnObjectMat
@@ -176,6 +193,7 @@ renderer.domElement.onmousedown = (e) => {
                     const geometry = new THREE.BufferGeometry()
                     polyline = new THREE.Line(geometry, objectToDrawMat)
                     scene.add(polyline)
+                    objectsToDelete.push(polyline)
                 }
                 else {
                     polyline.material = drawnObjectMat
@@ -254,10 +272,36 @@ function onWindowResize() {
 /**
  *  update scene
  */
+let currentIntesect: any = null
 function animate() {
     requestAnimationFrame(animate)
     controls.update()
     renderer.setAnimationLoop(() => render())
+    getIntersectedObject()
+}
+
+function getIntersectedObject() {
+    if (currentMode == mode.general) {
+        const intersects = raycaster.intersectObjects(objectsToDelete)
+        for (const object of objectsToDelete) {
+            object.material = drawnObjectMat
+        }
+
+        for (const intersect of intersects) {
+            (intersect.object as THREE.Line).material = objectToDrawMat
+        }
+        if (intersects.length) {
+            // if (currentIntesect === null) {
+            //     console.log('mouse entered')
+            // }
+            currentIntesect = intersects[0].object
+        } else {
+            // if (currentIntesect) {
+            //     console.log('mouse leaved')
+            // }
+            currentIntesect = null
+        }
+    }
 }
 
 function render() {
