@@ -79,6 +79,7 @@ const controls = new OrbitControls(camera, renderer.domElement)
 controls.mouseButtons.LEFT = THREE.MOUSE.PAN
 controls.enableRotate = false
 controls.screenSpacePanning = true;
+controls.enablePan = false;
 
 /**
  * events
